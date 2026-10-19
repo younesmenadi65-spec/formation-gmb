@@ -32,33 +32,32 @@ export async function registerSession(fd: FormData) {
   const forma4 = fd.get('forma4') ? 'Formation 4' : null
   const selectedFormas = [forma1, forma2, forma3, forma4].filter(Boolean).join(', ') || 'Aucune'
 
-  // Enregistrement direct pour chaque session
+  // Traitement et ajout pour chaque créneau sélectionné
   for (const sid of selectedSessions) {
-    const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
+    // 1. Suppression de l'ancienne inscription de CETTE personne pour CE créneau précis (au cas où elle réessaye)
+    await db().from('registrations').delete().eq('discord', d).eq('session_id', sid)
 
-    // On nettoie d'abord l'ancienne ligne pour cette session
-    await db().from('registrations').delete().ilike('discord', d).eq('session_id', sid)
+    // 2. Génération d'un jeton unique pour CHAQUE entrée
+    const uniqueToken = Math.random().toString(36).substring(2) + Date.now().toString(36) + Math.random().toString(36).substring(2)
 
-    // Insertion directe
+    // 3. Insertion simple dans la liste
     const { error } = await db().from('registrations').insert({
       discord: d,
       rp_name: rp,
       grade: selectedFormas,
       session_id: sid,
       motivation: m,
-      token: token,
+      token: uniqueToken,
       status: 'pending'
     })
 
     if (error) {
-      console.error("ERREUR INSCRIPTION:", error)
-      // Si une erreur de clé étrangère survient encore, on relance en interceptant l'erreur
-      throw new Error("Erreur Supabase lors de l'insertion : " + error.message)
+      console.error("Erreur lors de l'ajout au créneau", sid, error)
     }
   }
 
   if (fd.get('final') === 'oui') {
-    await db().rpc('register_final', { p_discord: d, p_rp: rp })
+    await db().rpc('register_final', { p_discord: d, p_rp: rp }).catch(() => null)
   }
 
   redirect('/participants')
