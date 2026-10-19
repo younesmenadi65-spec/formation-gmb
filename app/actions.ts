@@ -32,15 +32,17 @@ export async function registerSession(fd: FormData) {
   const forma4 = fd.get('forma4') ? 'Formation 4' : null
   const selectedFormas = [forma1, forma2, forma3, forma4].filter(Boolean).join(', ') || 'Aucune'
 
-  // Traitement et ajout pour chaque créneau sélectionné
-  for (const sid of selectedSessions) {
-    // 1. Suppression de l'ancienne inscription de CETTE personne pour CE créneau précis
-    await db().from('registrations').delete().eq('discord', d).eq('session_id', sid)
+  let hasError = false
 
-    // 2. Génération d'un jeton unique pour CHAQUE entrée
+  // Traitement pour chaque créneau sélectionné
+  for (const sid of selectedSessions) {
+    // 1. On nettoie l'éventuelle ancienne inscription pour ce pseudo et cette session précise
+    await db().from('registrations').delete().ilike('discord', d).eq('session_id', sid)
+
+    // 2. Jeton unique
     const uniqueToken = Math.random().toString(36).substring(2) + Date.now().toString(36) + Math.random().toString(36).substring(2)
 
-    // 3. Insertion simple dans la liste
+    // 3. Insertion
     const { error } = await db().from('registrations').insert({
       discord: d,
       rp_name: rp,
@@ -52,7 +54,8 @@ export async function registerSession(fd: FormData) {
     })
 
     if (error) {
-      console.error("Erreur lors de l'ajout au créneau", sid, error)
+      console.error(`[ERREUR SUPABASE INSERT - SESSION ${sid}]:`, error)
+      hasError = true
     }
   }
 
@@ -60,9 +63,19 @@ export async function registerSession(fd: FormData) {
     try {
       await db().rpc('register_final', { p_discord: d, p_rp: rp })
     } catch (e) {
-      // Ignorer l'erreur silencieusement si la fonction RPC échoue
+      console.error("[ERREUR RPC FINAL]:", e)
     }
   }
+
+  // En cas d'erreur lors de l'insertion Supabase
+  if (hasError) {
+    redirect('/inscription?err=closed')
+  }
+
+  // Rafraîchir le cache des pages Next.js avant redirection
+  revalidatePath('/participants')
+  revalidatePath('/admin')
+  revalidatePath('/')
 
   redirect('/participants')
 }
@@ -72,12 +85,18 @@ export async function registerFinal(fd: FormData) {
   if (!d || !rp) redirect('/finale?err=invalid')
   const { data, error } = await db().rpc('register_final', { p_discord: d, p_rp: rp })
   if (error) redirect('/finale?err=' + (error.code === '23505' ? 'dup' : 'closed'))
+  
+  revalidatePath('/participants')
+  revalidatePath('/admin')
   redirect(`/statut?new=1&d=${encodeURIComponent(d)}&t=${data[0].o_token}`)
 }
 
 export async function cancel(fd: FormData) {
   const t = fd.get('table') === 'final' ? 'final_signups' : 'registrations'
   await db().from(t).delete().ilike('discord', s(fd, 'd')).eq('token', s(fd, 't'))
+  
+  revalidatePath('/participants')
+  revalidatePath('/admin')
   redirect('/statut?cancelled=1')
 }
 
@@ -99,6 +118,7 @@ export async function setStatus(fd: FormData) {
   const t = fd.get('table') === 'final' ? 'final_signups' : 'registrations'
   await db().from(t).update({ status: s(fd, 'status') }).eq('id', s(fd, 'id'))
   revalidatePath('/admin')
+  revalidatePath('/participants')
 }
 
 export async function setTeam(fd: FormData) {
