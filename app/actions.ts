@@ -33,8 +33,9 @@ export async function registerSession(fd: FormData) {
   })
 
   if (error) {
-    redirect('/inscription?err=' + (error.code === '23505' ? 'dup' : 'closed'))
-  }
+  console.error("ERREUR SUPABASE EXACTE :", error);
+  throw new Error("Erreur Supabase : " + error.message + " (Code: " + error.code + ")");
+}
 
   if (fd.get('final') === 'oui') {
     await db().rpc('register_final', { p_discord: d, p_rp: rp })
