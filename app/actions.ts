@@ -32,9 +32,8 @@ export async function registerSession(fd: FormData) {
     p_motiv: m 
   })
 
-  if (error) {
-  console.error("ERREUR SUPABASE EXACTE :", error);
-  throw new Error("Erreur Supabase : " + error.message + " (Code: " + error.code + ")");
+ if (error) {
+  redirect('/inscription?err=' + (error.code === '23505' ? 'dup' : 'closed'))
 }
 
   if (fd.get('final') === 'oui') {
