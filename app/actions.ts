@@ -32,15 +32,16 @@ export async function registerSession(fd: FormData) {
     p_motiv: m 
   })
 
- if (error) {
-  redirect('/inscription?err=' + (error.code === '23505' ? 'dup' : 'closed'))
-}
+  if (error) {
+    redirect('/inscription?err=' + (error.code === '23505' ? 'dup' : 'closed'))
+  }
 
   if (fd.get('final') === 'oui') {
     await db().rpc('register_final', { p_discord: d, p_rp: rp })
   }
 
-  redirect(`/statut?new=1&d=${encodeURIComponent(d)}&t=${data[0].o_token}`)
+  // Redirection directe vers les participants après l'inscription
+  redirect('/participants')
 }
 
 export async function registerFinal(fd: FormData) {
