@@ -1,32 +1,119 @@
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 import { db, isAdmin } from '@/lib/db'
-import { adminLogin, adminLogout, setStatus, setTeam, saveSession, saveFinal, saveEval } from '../actions'
+import { adminLogin, adminLogout, setStatus, setTeam, saveSession, saveFinal, saveEval } from '@/app/actions'
+
 export const dynamic = 'force-dynamic'
-const CRIT = ['Communication', 'Prise de décision', 'Organisation de l\'équipe', 'Gestion du stress en RP', 'Respect des consignes', 'Coordination', 'Instructions claires']
-const RES = ['À approfondir', 'En progression', 'Compétences satisfaisantes', 'Très bonne maîtrise']
-const St = ({ t, id, v }: any) => <form action={setStatus} className="inline"><input type="hidden" name="table" value={t} /><input type="hidden" name="id" value={id} />
-  <select name="status" defaultValue={v} className="bg-ink border border-zinc-700 text-xs"><option value="confirmed">Accepté</option><option value="waitlist">Attente</option><option value="pending">En validation</option><option value="refused">Refusé</option></select> <button className="text-xs underline">OK</button></form>
-export default async function A({ searchParams: q }: any) {
-  if (!(await isAdmin())) return (<form action={adminLogin} className="max-w-sm mx-auto card"><h1 className="text-xl mb-3">Administration</h1>{q.err && <p className="text-red-400">Identifiants invalides ou non autorisés.</p>}
-    <input name="email" type="email" required placeholder="Email" className="inp" /><input name="password" type="password" required placeholder="Mot de passe" className="inp" /><button className="btn w-full">Connexion</button></form>)
-  const d = db()
-  const [{ data: regs }, { data: fin }, { data: ss }, { data: ev }, { data: st }] = await Promise.all([d.from('registrations').select('*').order('session_id').order('created_at'), d.from('final_signups').select('*').order('created_at'), d.from('sessions').select('*').order('id'), d.from('evaluations').select('*'), d.from('settings').select('*')])
-  const f = (regs ?? []).filter((r: any) => (!q.s || String(r.session_id) === q.s) && (!q.q || (r.discord + r.rp_name).toLowerCase().includes(String(q.q).toLowerCase())))
-  const fo = st?.find((x: any) => x.k === 'final_open')?.v === 'true', fcap = st?.find((x: any) => x.k === 'final_capacity')?.v
-  const conf = (fin ?? []).filter((x: any) => x.status === 'confirmed')
-  return (<div className="space-y-10 text-sm">
-    <div className="flex justify-between"><h1 className="text-2xl">Tableau de bord</h1><div><a href="/admin/export" className="btn2 !py-1 mr-2">CSV</a><form action={adminLogout} className="inline"><button className="btn2 !py-1">Déconnexion</button></form></div></div>
-    <section className="grid grid-cols-2 md:grid-cols-4 gap-3">{ss?.map((x: any) => <div key={x.id} className="card">{x.label} : {regs?.filter((r: any) => r.session_id === x.id && r.status === 'confirmed').length} confirmés / {regs?.filter((r: any) => r.session_id === x.id && r.status === 'waitlist').length} attente</div>)}<div className="card">Finale : {conf.length}/{fcap} · É1 {conf.filter((x: any) => x.team === 1).length} · É2 {conf.filter((x: any) => x.team === 2).length}</div></section>
-    <section><h2 className="mb-2">Sessions</h2>{ss?.map((x: any) => <form key={x.id} action={saveSession} className="card mb-2 grid md:grid-cols-6 gap-2"><input type="hidden" name="id" value={x.id} />
-      <input name="label" defaultValue={x.label} className="inp !mb-0" /><input name="title" defaultValue={x.title} className="inp !mb-0 md:col-span-2" /><input name="capacity" type="number" defaultValue={x.capacity ?? ''} placeholder="Places (vide = illimité)" className="inp !mb-0" />
-      <label><input type="checkbox" name="open" defaultChecked={x.open} /> Ouvert</label><button className="btn2 !py-1">Enregistrer</button><textarea name="description" defaultValue={x.description} className="inp !mb-0 md:col-span-6" /></form>)}
-      <form action={saveFinal} className="card flex gap-3 items-center">Finale : places <input name="cap" type="number" defaultValue={fcap} className="inp !w-20 !mb-0" /><label><input type="checkbox" name="open" defaultChecked={fo} /> Ouverte</label><button className="btn2 !py-1">Enregistrer</button></form></section>
-    <section><h2 className="mb-2">Inscriptions sessions</h2><form className="flex gap-2 mb-2"><input name="q" defaultValue={q.q} placeholder="Recherche" className="inp !mb-0" /><select name="s" defaultValue={q.s} className="inp !mb-0 !w-32"><option value="">Toutes</option><option value="1">16h</option><option value="2">18h</option><option value="3">19h</option></select><button className="btn2 !py-1">Filtrer</button></form>
-      <div className="overflow-x-auto"><table className="w-full text-left"><tbody>{f.map((r: any) => <tr key={r.id} className="border-t border-zinc-800 align-top"><td>{['', '16h', '18h', '19h'][r.session_id]}</td><td>{r.rp_name}<br /><span className="text-zinc-500">{r.discord} · {r.grade}</span></td><td className="max-w-xs">{r.motivation}</td><td><St t="reg" id={r.id} v={r.status} /></td></tr>)}</tbody></table></div></section>
-    <section><h2 className="mb-2">Opération finale</h2>{fin?.map((x: any) => <div key={x.id} className="flex flex-wrap gap-3 border-t border-zinc-800 py-1 items-center"><span className="w-48">{x.rp_name} ({x.discord})</span><St t="final" id={x.id} v={x.status} />
-      <form action={setTeam}><input type="hidden" name="id" value={x.id} /><select name="team" defaultValue={x.team ?? ''} className="bg-ink border border-zinc-700 text-xs"><option value="">Sans équipe</option><option value="1">Équipe 1</option><option value="2">Équipe 2</option></select> <button className="text-xs underline">OK</button></form></div>)}</section>
-    <section><h2 className="mb-2">Évaluations (privées)</h2>{(regs ?? []).filter((r: any) => r.status === 'confirmed').map((r: any) => { const e: any = ev?.find((x: any) => x.registration_id === r.id); const sc = e ? Object.values(e.scores) as number[] : []; const avg = sc.length ? (sc.reduce((a, b) => a + b, 0) / sc.length).toFixed(1) : '–'
-      return <details key={r.id} className="card mb-2"><summary>{r.rp_name} — moyenne {avg}/5 {e?.result && `· ${e.result}`}</summary>
-        <form action={saveEval} className="mt-3"><input type="hidden" name="id" value={r.id} />{CRIT.map((c, i) => <div key={i} className="flex gap-2"><span className="w-44 text-xs pt-2">{c}</span><input name={'n' + i} type="number" min={0} max={5} defaultValue={e?.scores?.[i] ?? ''} className="inp !w-16" /><input name={'c' + i} defaultValue={e?.comments?.[i] ?? ''} placeholder="Commentaire" className="inp" /></div>)}
-          <textarea name="st" defaultValue={e?.strengths} placeholder="Points forts" className="inp" /><textarea name="im" defaultValue={e?.improvements} placeholder="Axes d'amélioration" className="inp" /><textarea name="fc" defaultValue={e?.final_comment} placeholder="Commentaire final" className="inp" />
-          <select name="res" defaultValue={e?.result ?? RES[0]} className="inp">{RES.map(x => <option key={x}>{x}</option>)}</select><p className="text-xs text-zinc-500 mb-2">Appréciation interne : aucune promotion automatique.</p><button className="btn2 !py-1">Enregistrer</button></form></details> })}</section></div>)
+
+export default async function AdminPage({ searchParams }: { searchParams: { err?: string } }) {
+  const authenticated = await isAdmin()
+
+  if (!authenticated) {
+    return (
+      <div className="max-w-md mx-auto card mt-12 p-6 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl">
+        <h1 className="text-2xl font-bold mb-6 text-center text-white">Espace État-Major - Connexion</h1>
+        {searchParams.err && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500 text-red-400 text-sm rounded">
+            Identifiants incorrects ou non autorisés.
+          </div>
+        )}
+        <form action={adminLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>
+            <input 
+              type="email" 
+              name="email" 
+              required 
+              className="w-full px-3 py-2 bg-black/40 border border-zinc-700 rounded text-white focus:outline-none focus:border-red-500" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">Mot de passe</label>
+            <input 
+              type="password" 
+              name="password" 
+              required 
+              className="w-full px-3 py-2 bg-black/40 border border-zinc-700 rounded text-white focus:outline-none focus:border-red-500" 
+            />
+          </div>
+          <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition">
+            Se connecter
+          </button>
+        </form>
+      </div>
+    )
+  }
+
+  // Si l'utilisateur est connecté, on récupère les données de l'état-major
+  const { data: registrations } = await db().from('registrations').select('*').order('created_at', { ascending: false })
+  const { data: sessions } = await db().from('sessions').select('*').order('id', { ascending: true })
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+        <h1 className="text-3xl font-bold text-white">Tableau de bord - État-Major</h1>
+        <form action={adminLogout}>
+          <button type="submit" className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-sm text-white rounded transition">
+            Se déconnecter
+          </button>
+        </form>
+      </div>
+
+      {/* Gestion des sessions */}
+      <div className="card bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+        <h2 className="text-xl font-semibold mb-4 text-white">Sessions de formation</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          {sessions?.map((session: any) => (
+            <div key={session.id} className="bg-black/40 p-4 border border-zinc-800 rounded">
+              <h3 className="font-bold text-red-500 mb-2">Créneau {session.id} : {session.label}</h3>
+              <p className="text-sm text-zinc-300 mb-2">{session.title}</p>
+              <form action={saveSession} className="space-y-2 text-sm">
+                <input type="hidden" name="id" value={session.id} />
+                <div>
+                  <label className="text-xs text-zinc-400">Titre</label>
+                  <input type="text" name="title" defaultValue={session.title} className="w-full px-2 py-1 bg-black border border-zinc-700 rounded text-white" />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400">Capacité</label>
+                  <input type="number" name="capacity" defaultValue={session.capacity || ''} className="w-full px-2 py-1 bg-black border border-zinc-700 rounded text-white" />
+                </div>
+                <button type="submit" className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-xs">Enregistrer</button>
+              </form>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Liste des inscrits globale */}
+      <div className="card bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+        <h2 className="text-xl font-semibold mb-4 text-white">Inscriptions enregistrées ({registrations?.length || 0})</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-zinc-300">
+            <thead className="border-b border-zinc-800 text-zinc-400">
+              <tr>
+                <th className="py-2 px-3">Discord</th>
+                <th className="py-2 px-3">Nom RP</th>
+                <th className="py-2 px-3">Créneau</th>
+                <th className="py-2 px-3">Formations</th>
+                <th className="py-2 px-3">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {registrations?.map((reg: any) => (
+                <tr key={reg.id} className="border-b border-zinc-800/50">
+                  <td className="py-2 px-3 font-medium text-white">{reg.discord}</td>
+                  <td className="py-2 px-3">{reg.rp_name}</td>
+                  <td className="py-2 px-3">Créneau {reg.session_id}</td>
+                  <td className="py-2 px-3 text-xs text-zinc-400">{reg.grade}</td>
+                  <td className="py-2 px-3">
+                    <span className="px-2 py-1 bg-zinc-800 rounded text-xs">{reg.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
 }
