@@ -34,7 +34,7 @@ export async function registerSession(fd: FormData) {
 
   // Traitement et ajout pour chaque créneau sélectionné
   for (const sid of selectedSessions) {
-    // 1. Suppression de l'ancienne inscription de CETTE personne pour CE créneau précis (au cas où elle réessaye)
+    // 1. Suppression de l'ancienne inscription de CETTE personne pour CE créneau précis
     await db().from('registrations').delete().eq('discord', d).eq('session_id', sid)
 
     // 2. Génération d'un jeton unique pour CHAQUE entrée
@@ -57,7 +57,11 @@ export async function registerSession(fd: FormData) {
   }
 
   if (fd.get('final') === 'oui') {
-    await db().rpc('register_final', { p_discord: d, p_rp: rp }).catch(() => null)
+    try {
+      await db().rpc('register_final', { p_discord: d, p_rp: rp })
+    } catch (e) {
+      // Ignorer l'erreur silencieusement si la fonction RPC échoue
+    }
   }
 
   redirect('/participants')
