@@ -1,0 +1,8 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+body{@apply bg-ink text-zinc-200 antialiased}
+.card{@apply bg-panel border border-zinc-800 rounded-lg p-5 transition hover:border-kaki}
+.btn{@apply inline-block bg-alert text-white font-bold uppercase tracking-wider px-5 py-3 rounded hover:brightness-125 transition text-center}
+.btn2{@apply btn bg-transparent border border-kaki text-zinc-200}
+.inp{@apply w-full bg-ink border border-zinc-700 rounded px-3 py-2 mb-3 focus:border-kaki outline-none}
+.badge{@apply text-xs font-bold uppercase px-2 py-1 rounded bg-kaki/30 text-lime-200}
+h1,h2{@apply uppercase tracking-widest font-black}
