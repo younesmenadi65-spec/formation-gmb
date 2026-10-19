@@ -16,26 +16,23 @@ export default async function P({ searchParams }: any) {
       <input name="rp" required maxLength={60} placeholder="Nom RP" className="inp mb-3" />
       <input name="discord" required maxLength={40} placeholder="Pseudo Discord (jamais ton mot de passe !)" className="inp mb-3" />
       
-      {/* Les 4 choix de formations à cocher */}
+      {/* Les créneaux horaires de formation à cocher */}
       <div className="mb-4 text-left border border-gray-700/50 p-3 rounded-md bg-black/20">
-        <label className="block text-sm font-semibold mb-2 text-gray-200">Sélectionne tes formations :</label>
+        <label className="block text-sm font-semibold mb-2 text-gray-200">Choisis tes créneaux de formation :</label>
         <div className="space-y-2 text-sm">
           <label className="flex items-center gap-2 cursor-pointer hover:text-white">
-            <input type="checkbox" name="forma1" defaultChecked className="accent-red-600" /> Formation 1 — GM / GIGN
+            <input type="checkbox" name="forma1" defaultChecked className="accent-red-600" /> Session 16h — GM / GIGN
           </label>
           <label className="flex items-center gap-2 cursor-pointer hover:text-white">
-            <input type="checkbox" name="forma2" defaultChecked className="accent-red-600" /> Formation 2 — Lead d'intervention
+            <input type="checkbox" name="forma2" defaultChecked className="accent-red-600" /> Session 18h — Lead d'intervention
           </label>
           <label className="flex items-center gap-2 cursor-pointer hover:text-white">
-            <input type="checkbox" name="forma3" defaultChecked className="accent-red-600" /> Formation 3 — Négociation & Tactique
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer hover:text-white">
-            <input type="checkbox" name="forma4" defaultChecked className="accent-red-600" /> Formation 4 — Spécialisation Lourde
+            <input type="checkbox" name="forma3" defaultChecked className="accent-red-600" /> Session 19h — Négociation & Tactique
           </label>
         </div>
       </div>
 
-      <textarea name="motiv" required maxLength={1000} rows={4} placeholder="Pourquoi veux-tu découvrir le Lead d'intervention ?" className="inp mb-3" />
+      <textarea name="motiv" required maxLength={1000} rows={4} placeholder="Pourquoi veux-tu participer à ces formations ?" className="inp mb-3" />
       
       <select name="final" className="inp mb-3">
         <option value="non">Opération finale 21 h : non</option>
