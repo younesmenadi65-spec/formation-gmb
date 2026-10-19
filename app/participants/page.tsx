@@ -11,7 +11,7 @@ export default async function P() {
         {[1, 2, 3].map(i => (
           <div key={i} className="card">
             <h2 className="text-kaki text-xl mb-2">{['', '16h', '18h', '19h'][i]}</h2>
-            {data?.filter((r: any) => r.session_id === i).map((r: any, j: number) => (
+            {data?.filter((r: any) => Number(r.session_id) === i).map((r: any, j: number) => (
               <p key={j} className="text-sm">{r.rp_name}</p>
             ))}
           </div>
