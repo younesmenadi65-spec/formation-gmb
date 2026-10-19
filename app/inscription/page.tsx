@@ -2,7 +2,7 @@ import { registerSession } from '../actions'
 export const dynamic = 'force-dynamic'
 
 const E: any = { 
-  invalid: 'Formulaire incomplet (motivation : 10 caractères minimum, case à cocher requise).', 
+  invalid: 'Formulaire incomplet (motivation requise, case à cocher requise).', 
   dup: 'Ce pseudo Discord est déjà inscrit. Consulte « Mon inscription ».', 
   closed: 'Cette session est fermée.' 
 }
@@ -39,7 +39,7 @@ export default async function P({ searchParams }: any) {
         </div>
       </div>
 
-      <textarea name="motiv" required minLength={10} maxLength={1000} rows={4} placeholder="Pourquoi veux-tu découvrir le Lead d'intervention ?" className="inp mb-3" />
+      <textarea name="motiv" required maxLength={1000} rows={4} placeholder="Pourquoi veux-tu découvrir le Lead d'intervention ?" className="inp mb-3" />
       
       <select name="final" className="inp mb-3">
         <option value="non">Opération finale 21 h : non</option>
