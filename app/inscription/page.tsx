@@ -13,12 +13,8 @@ export default async function P({ searchParams }: any) {
       <h1 className="text-2xl mb-4">Inscription</h1>
       {searchParams.err && <p className="text-red-400 mb-3">{E[searchParams.err]}</p>}
       
-      {/* Session par défaut envoyée en arrière-plan */}
-      <input type="hidden" name="session" value="1" />
-
       <input name="rp" required maxLength={60} placeholder="Nom RP" className="inp mb-3" />
       <input name="discord" required maxLength={40} placeholder="Pseudo Discord (jamais ton mot de passe !)" className="inp mb-3" />
-      <input name="grade" required maxLength={60} placeholder="Grade actuel" className="inp mb-3" />
       
       {/* Les 4 choix de formations à cocher */}
       <div className="mb-4 text-left border border-gray-700/50 p-3 rounded-md bg-black/20">
