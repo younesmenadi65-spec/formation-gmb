@@ -22,7 +22,7 @@ export async function registerSession(fd: FormData) {
   if (fd.get('forma3')) selectedSessions.push(3)
   if (fd.get('forma4')) selectedSessions.push(4)
 
-  // Par défaut si aucune case n'est cochée, on attribue la session 1
+  // Par défaut si aucune case n'est cochée
   if (selectedSessions.length === 0) {
     selectedSessions.push(1)
   }
@@ -34,15 +34,19 @@ export async function registerSession(fd: FormData) {
   const forma4 = fd.get('forma4') ? 'Formation 4' : null
   const selectedFormas = [forma1, forma2, forma3, forma4].filter(Boolean).join(', ') || 'Aucune'
 
-  // Enregistrement pour chaque session cochée
+  // Enregistrement direct pour chaque session cochée (évite les conflits d'écrasement)
   for (const sid of selectedSessions) {
-    const { error } = await db().rpc('register_session', { 
-      p_discord: d, 
-      p_rp: rp, 
-      p_grade: selectedFormas, 
-      p_session: sid, 
-      p_motiv: m 
-    })
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
+
+    const { error } = await db().from('registrations').upsert({
+      discord: d,
+      rp_name: rp,
+      grade: selectedFormas,
+      session_id: sid,
+      motivation: m,
+      token: token,
+      status: 'pending'
+    }, { onConflict: 'discord,session_id' })
 
     if (error) {
       redirect('/inscription?err=' + (error.code === '23505' ? 'dup' : 'closed'))
